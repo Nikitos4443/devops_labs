@@ -83,6 +83,8 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Set Environment Variables
         run: |
           if [ "${{ github.ref_name }}" = "main" ]; then
@@ -97,8 +99,9 @@ jobs:
           host: ${{ env.TARGET_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ github.ref_name == 'main' && secrets.SSH_MAIN_PRIVATE_KEY || secrets.SSH_DEV_PRIVATE_KEY }}
-          source: "./src/deploy/docker-compose.yml"
+          source: "src/deploy/docker-compose.yml"
           target: "~/hive-app"
+          strip_components: 2
       
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
@@ -111,7 +114,7 @@ jobs:
             
             cd ~/hive-app
             
-            # Створюємо .env файл, щоб Compose бачив назви образів
+            # Створюємо .env файл для Docker Compose
             echo "IMAGE_HIVE=${{ env.IMAGE_HIVE }}:${{ github.ref_name }}" > .env
             echo "IMAGE_COMM=${{ env.IMAGE_COMM }}:${{ github.ref_name }}" >> .env
             echo "IMAGE_MAP=${{ env.IMAGE_MAP }}:${{ github.ref_name }}" >> .env
