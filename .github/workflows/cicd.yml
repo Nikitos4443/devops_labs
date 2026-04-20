@@ -1,0 +1,101 @@
+name: Hive Emulator Full CI/CD
+
+on:
+  push:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: registry.gitlab.com
+  IMAGE_HIVE: registry.gitlab.com/nikitos4443/hiveemulator/hivemind
+  IMAGE_MAP: registry.gitlab.com/nikitos4443/hiveemulator/map-client
+  IMAGE_COMM: registry.gitlab.com/nikitos4443/hiveemulator/communication-control
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore & Publish .NET Apps
+        run: |
+          dotnet publish HiveMind/HiveMind.API.csproj -c Release -o HiveMind/publish
+          dotnet publish CommunicationControl/CommunicationControl.API.csproj -c Release -o CommunicationControl/published
+
+      - name: Login to GitLab Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: nikitos4443
+          password: ${{ secrets.GITLAB_TOKEN }}
+
+
+      - name: Build & Push HiveMind
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src/CommunicationControl/DevOpsProject.HiveMind.API
+          file: ./src/CommunicationControl/DevOpsProject.HiveMind.API/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_HIVE }}:${{ github.ref_name }}
+
+
+      - name: Build & Push CommunicationControl
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src/CommunicationControl/DevOpsProject
+          file: ./src/CommunicationControl/DevOpsProject/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_COMM }}:${{ github.ref_name }}
+
+
+      - name: Build & Push MapClient (Frontend)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src/MapClient/
+          file: ./src/MapClient/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_MAP }}:${{ github.ref_name }}
+
+      - name: SAST Scan HiveMind
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_HIVE }}:${{ github.ref_name }}
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Environment Variables
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "TARGET_HOST=${{ secrets.PROD_HOST }}" >> $GITHUB_ENV
+          else
+            echo "TARGET_HOST=${{ secrets.DEV_HOST }}" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.TARGET_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "${{ secrets.GITLAB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u nikitos4443 --password-stdin
+            
+            docker stop hivemind map-client comm-control || true
+            docker rm hivemind map-client comm-control || true
+            
+            docker image prune -a -f
+
+            docker run -d --name hivemind -p 5149:5149 ${{ env.IMAGE_HIVE }}:${{ github.ref_name }}
+            
+            docker run -d --name comm-control -p 8080:8080 ${{ env.IMAGE_COMM }}:${{ github.ref_name }}
+            
+            docker run -d --name map-client -p 80:80 ${{ env.IMAGE_MAP }}:${{ github.ref_name }}
