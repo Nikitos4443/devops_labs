@@ -53,6 +53,17 @@ jobs:
           tags: ${{ env.IMAGE_COMM }}:${{ github.ref_name }}
 
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build MapClient
+        run: |
+          cd src/MapClient
+          npm install
+          npm run build
+
       - name: Build & Push MapClient (Frontend)
         uses: docker/build-push-action@v5
         with:
