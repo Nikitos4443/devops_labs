@@ -85,7 +85,7 @@ jobs:
         with:
           host: ${{ env.TARGET_HOST }}
           username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ github.ref_name == 'main' && secrets.SSH_MAIN_PRIVATE_KEY || secrets.SSH_DEV_PRIVATE_KEY }}
           script: |
             echo "${{ secrets.GITLAB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u nikitos4443 --password-stdin
             
