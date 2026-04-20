@@ -91,7 +91,16 @@ jobs:
             echo "TARGET_HOST=${{ secrets.DEV_HOST }}" >> $GITHUB_ENV
           fi
 
-      - name: Deploy to EC2 via SSH
+      - name: Copy docker-compose.yml to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.TARGET_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ github.ref_name == 'main' && secrets.SSH_MAIN_PRIVATE_KEY || secrets.SSH_DEV_PRIVATE_KEY }}
+          source: "./src/deploy/docker-compose.yml"
+          target: "~/hive-app"
+      
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.TARGET_HOST }}
@@ -100,13 +109,12 @@ jobs:
           script: |
             echo "${{ secrets.GITLAB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u nikitos4443 --password-stdin
             
-            docker stop hivemind map-client comm-control || true
-            docker rm hivemind map-client comm-control || true
+            cd ~/hive-app
             
-            docker image prune -a -f
+            # Створюємо .env файл, щоб Compose бачив назви образів
+            echo "IMAGE_HIVE=${{ env.IMAGE_HIVE }}:${{ github.ref_name }}" > .env
+            echo "IMAGE_COMM=${{ env.IMAGE_COMM }}:${{ github.ref_name }}" >> .env
+            echo "IMAGE_MAP=${{ env.IMAGE_MAP }}:${{ github.ref_name }}" >> .env
 
-            docker run -d --name hivemind -p 5149:5149 ${{ env.IMAGE_HIVE }}:${{ github.ref_name }}
-            
-            docker run -d --name comm-control -p 8080:8080 ${{ env.IMAGE_COMM }}:${{ github.ref_name }}
-            
-            docker run -d --name map-client -p 80:80 ${{ env.IMAGE_MAP }}:${{ github.ref_name }}
+            docker compose pull
+            docker compose up -d --remove-orphans
