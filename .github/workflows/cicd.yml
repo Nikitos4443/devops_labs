@@ -24,8 +24,8 @@ jobs:
 
       - name: Restore & Publish .NET Apps
         run: |
-          dotnet publish HiveMind/HiveMind.API.csproj -c Release -o HiveMind/publish
-          dotnet publish CommunicationControl/CommunicationControl.API.csproj -c Release -o CommunicationControl/published
+          dotnet publish src/CommunicationControl/DevOpsProject.HiveMind.API/DevOpsProject.HiveMind.API.csproj -c Release -o src/CommunicationControl/DevOpsProject.HiveMind.API/publish
+          dotnet publish src/CommunicationControl/DevOpsProject/DevOpsProject.CommunicationControl.API.csproj -c Release -o src/CommunicationControl/DevOpsProject/published
 
       - name: Login to GitLab Registry
         uses: docker/login-action@v3
