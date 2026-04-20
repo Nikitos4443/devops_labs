@@ -1,0 +1,47 @@
+version: "3.9"
+name: hiveemulator
+services:
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: always
+    networks:
+      - app
+  
+  communicationcontrol:
+    image: communication-control-api
+    container_name: communication-control-api
+    restart: always
+    environment:
+      Redis__ConnectionString: "redis:6379"
+    ports:
+      - "8080:8080"
+    networks:
+      - app
+  
+  hive-mind:
+    image: hive-mind
+    container_name: hive-mind
+    restart: always
+    environment:
+      - CommunicationConfiguration__CommunicationControlIP=communicationcontrol
+      - CommunicationConfiguration__CommunicationControlPort=8080
+      - CommunicationConfiguration__InitialLocation__Latitude=48.719547
+      - CommunicationConfiguration__InitialLocation__Longitude=38.092680
+    networks:
+      - app
+
+  
+  map-client:
+    image: map-client
+    container_name: map-client
+    restart: always
+    volumes:
+      - ./config.json:/usr/share/nginx/html/config.json
+    ports:
+      - "8081:80"
+    networks:
+      - app
+
+networks:
+  app:
