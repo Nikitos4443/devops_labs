@@ -93,6 +93,10 @@ jobs:
             echo "TARGET_HOST=${{ secrets.DEV_HOST }}" >> $GITHUB_ENV
           fi
 
+      - name: Generate config.json
+        run: |
+          echo "{\"API\": \"http://${{ env.TARGET_HOST }}:8080/api/v1/client\"}" > src/deploy/config.json
+
       - name: Copy deployment files to EC2
         uses: appleboy/scp-action@master
         with:
