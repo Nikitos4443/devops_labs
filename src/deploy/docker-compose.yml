@@ -9,7 +9,7 @@ services:
       - app
   
   communicationcontrol:
-    image: communication-control-api
+    image: ${IMAGE_COMM}
     container_name: communication-control-api
     restart: always
     environment:
@@ -20,7 +20,7 @@ services:
       - app
   
   hive-mind:
-    image: hive-mind
+    image: ${IMAGE_HIVE}
     container_name: hive-mind
     restart: always
     environment:
@@ -33,7 +33,7 @@ services:
 
   
   map-client:
-    image: map-client
+    image: ${IMAGE_MAP}
     container_name: map-client
     restart: always
     volumes:
