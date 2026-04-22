@@ -72,10 +72,24 @@ jobs:
           push: true
           tags: ${{ env.IMAGE_MAP }}:${{ github.ref_name }}
 
-      - name: SAST Scan
+      - name: Scan HiveMind
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.IMAGE_HIVE }}:${{ github.ref_name }}
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Scan CommunicationControl
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_COMM }}:${{ github.ref_name }}
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Scan MapClient
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_MAP }}:${{ github.ref_name }}
           format: 'table'
           severity: 'CRITICAL,HIGH'
 
