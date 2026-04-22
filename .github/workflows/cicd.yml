@@ -119,5 +119,5 @@ jobs:
             echo "IMAGE_COMM=${{ env.IMAGE_COMM }}:${{ github.ref_name }}" >> .env
             echo "IMAGE_MAP=${{ env.IMAGE_MAP }}:${{ github.ref_name }}" >> .env
 
-            docker compose pull
-            docker compose up -d --remove-orphans
+            docker-compose pull
+            docker-compose up -d --remove-orphans
